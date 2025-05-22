@@ -1,0 +1,173 @@
+/* style.css */
+
+body {
+    font-family: 'Arial', sans-serif; 
+    background-color: #034e0e; 
+    background-image: url('spotify.jpg'); /* Your background image */
+    background-size: cover; /* Cover the entire page */
+    background-repeat: no-repeat; 
+    background-attachment: fixed; 
+    color: #f0f0f0; 
+}
+
+.container-fluid {
+    max-width: 1400px; /* Adjust as needed */
+    margin: auto;
+    padding: 20px;
+}
+
+/* Targeting the Title Panel */
+.titlePanel {
+    background-color: rgba(2, 74, 22, 0.9); /* Dark green with some transparency */
+    color: white;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* Stronger shadow for depth */
+    text-align: center;
+    font-size: 2em; /* Larger title */
+    font-weight: bold;
+}
+
+/* Targeting the Sidebar Panel */
+.col-sm-4.well { 
+    background-color: rgba(24, 97, 39, 0.9); 
+    padding: 25px; 
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    color: #f0f0f0; 
+    height: 100%; /* Make sidebar fill available height */
+    overflow-y: auto; /* Enable scrolling for long content */
+    border: none; /* Remove default well border */
+}
+
+/* Targeting the Main Panel (Shiny's default classes) */
+.col-sm-8 { /* Bootstrap column class */
+    background-color: rgba(24, 110, 49, 0.9); /* Lighter green with transparency */
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    color: #f0f0f0; /* Light text */
+}
+
+/* Headings within panels */
+.col-sm-4.well h3, .col-sm-8 h3 {
+    color: #97bdef; /* A soft blue/white for headings */
+    margin-top: 0;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2); /* Light border */
+    padding-bottom: 10px;
+}
+
+/* Labels for numeric inputs */
+.form-group.shiny-input-container label {
+    color: #e0e0e0; /* Slightly darker white for labels */
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Numeric input fields themselves */
+.form-group.shiny-input-container input[type="number"] {
+    background-color: rgba(255, 255, 255, 0.1); /* Slightly transparent white input field */
+    color: white; /* Text color inside input */
+    border: 1px solid rgba(255, 255, 255, 0.3); /* Light border */
+    border-radius: 4px;
+    padding: 8px 10px;
+    width: 100%; /* Make inputs fill the width */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Focus state for input fields */
+.form-group.shiny-input-container input[type="number"]:focus {
+    outline: none;
+    border-color: #79e0a0; /* Green highlight on focus */
+    box-shadow: 0 0 0 0.2rem rgba(121, 224, 160, 0.3); /* Soft glow */
+}
+
+/* Action Buttons (Shiny's default class is 'btn') */
+.btn {
+    display: block; /* Make buttons stack vertically */
+    width: 100%; /* Make buttons fill the width */
+    font-weight: bold;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.1em;
+    margin-top: 10px; /* Space between buttons */
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+/* Specific styling for the primary button (Predict Popularity) */
+.btn-primary { /* You added this class in R: actionButton("predict", ..., class = "btn-primary") */
+    background-color: #007bff; /* Bright blue */
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+    transform: translateY(-2px); /* Slight lift effect */
+}
+
+/* Styling for other buttons (Reset, Clear) */
+.btn:not(.btn-primary) { /* Targets any button that is NOT btn-primary */
+    background-color: #6c757d; /* Grey button */
+    color: white;
+}
+
+.btn:not(.btn-primary):hover {
+    background-color: #5a6268; /* Darker grey on hover */
+    transform: translateY(-2px);
+}
+
+/* DT (DataTables) Output Styling */
+.dataTables_wrapper {
+    margin-top: 20px;
+    background-color: rgba(255, 255, 255, 0.95); /* Nearly opaque white background for table */
+    border-radius: 8px;
+    overflow: hidden; /* Ensures borders/shadows are contained */
+}
+
+.dataTables_wrapper table.dataTable {
+    width: 100% !important; /* Ensure table takes full width of its container */
+    margin: 0 !important; /* Remove default margin */
+    color: #333; /* Dark text for table content */
+}
+
+.dataTables_wrapper .dataTables_filter {
+    display: none; /* Hide the search bar, as it's disabled in R code options */
+}
+
+/* Table Header */
+.dataTables_wrapper thead th {
+    background-color: #024a16; /* Dark green background for header */
+    color: white;
+    font-weight: bold;
+    padding: 12px 10px;
+    border-bottom: 2px solid #01360c; /* Darker border below header */
+    text-align: left; /* Align header text left */
+}
+
+/* Table Body */
+.dataTables_wrapper tbody td {
+    padding: 10px;
+    border-bottom: 1px solid #e0e0e0; /* Light grey border between rows */
+}
+
+/* Alternating row colors for readability */
+.dataTables_wrapper tbody tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+.dataTables_wrapper tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+/* Hover effect on table rows */
+.dataTables_wrapper tbody tr:hover {
+    background-color: #e6f7ff; /* Light blue on hover */
+}
+
+/* Remove border from the last row */
+.dataTables_wrapper tbody tr:last-child td {
+    border-bottom: none;
+}
