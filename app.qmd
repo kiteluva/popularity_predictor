@@ -1,0 +1,271 @@
+---
+title: "Popularity Predictor"
+author: "kite-luva"
+format: html
+editor: visual
+execute:
+  freeze: auto
+filters:
+  - shiny
+---
+
+```{r setup,include=TRUE}
+options(digits = 4) 
+knitr::opts_chunk$set(echo = FALSE)
+
+library(shiny)
+library(DT)
+library(xgboost)
+
+# --- Model Loading with Error Handling ---
+xgb_model <- tryCatch({
+    readRDS("xgb_model.rds")
+}, error = function(e) {
+    message(paste("Error loading model: ", e$message,
+                  "\nPlease ensure 'xgb_model.rds' is in the same directory as app.R"))
+    NULL
+})
+
+# Function to predict popularity
+predict_popularity <- function(new_song_features) {
+    if (!is.null(xgb_model)) {
+        predict(xgb_model, newdata = as.matrix(new_song_features))
+    } else {
+        warning("Model not loaded. Cannot make predictions.")
+        rep(NA, nrow(new_song_features))
+    }
+}
+
+# Initialize the results table
+initial_table <- data.frame(
+    daily_rank = numeric(),
+    days_out = numeric(),
+    market_count = numeric(),
+    artist_count = numeric(),
+    duration_min = numeric(),
+    daily_movement = numeric(),
+    weekly_movement = numeric(),
+    mode = numeric(),
+    is_explicit = numeric(),
+    danceability = numeric(),
+    energy = numeric(),
+    loudness = numeric(),
+    speechiness = numeric(),
+    acousticness = numeric(),
+    instrumentalness = numeric(),
+    liveness = numeric(),
+    valence = numeric(),
+    time_signature = numeric(),
+    key = numeric(),
+    tempo = numeric(),
+    Predicted_Popularity = numeric()
+)
+
+ui <- fluidPage(
+    titlePanel("Spotify Song Popularity Predictor"),
+
+    # Link to custom CSS, JS, and favicon
+    tags$head(
+        tags$link(rel = "icon", type = "image/png", href = "icona.png"),
+        tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
+        tags$script(src = "script.js")
+    ),
+
+    # --- Input Section (Top - Three Rows, Three Columns Each) ---
+    h3("Enter Song Features"),
+
+    fluidRow( # First row of inputs
+        column(4, # First column (4/12 width)
+               numericInput("daily_rank", "Daily Rank (1-200):", value = 1, min = 1, max = 200),
+               numericInput("days_out", "Days out (1-3000):", value = 1, min = 1, max = 3000),
+               numericInput("market_count", "Market Counts (1-72):", value = 1, min = 1, max = 72)
+        ),
+        column(4, # Second column (4/12 width)
+               numericInput("artist_count", "No. of Artists (1-10):", value = 1, min = 1, max = 10),
+               numericInput("duration_min", "Song Duration (minutes, 1-20):", value = 3, min = 1, max = 20)
+        ),
+        column(4, # Third column (4/12 width)
+               numericInput("daily_movement", "Daily Movement (-100 to 100):", value = 0, min = -100, max = 100),
+               numericInput("weekly_movement", "Weekly Movement (-300 to 300):", value = 0, min = -300, max = 300)
+        )
+    ), # End of first fluidRow for inputs
+
+    fluidRow( # Second row of inputs
+        column(4, # First column (4/12 width)
+               numericInput("mode", "Mode (0=Minor, 1=Major):", value = 1, min = 0, max = 1),
+               numericInput("is_explicit", "Is Explicit? (0=No, 1=Yes):", value = 0, min = 0, max = 1),
+               numericInput("danceability", "Danceability (0-1):", value = 0.5, min = 0, max = 1, step = 0.01)
+        ),
+        column(4, # Second column (4/12 width)
+               numericInput("energy", "Energy (0-1):", value = 0.5, min = 0, max = 1, step = 0.01),
+               numericInput("loudness", "Loudness (dB, -60 to 0):", value = -10, min = -60, max = 0, step = 0.1)
+        ),
+        column(4, # Third column (4/12 width)
+               numericInput("speechiness", "Speechiness (0-1):", value = 0.1, min = 0, max = 1, step = 0.01),
+               numericInput("acousticness", "Acousticness (0-1):", value = 0.5, min = 0, max = 1, step = 0.01)
+        )
+    ), # End of second fluidRow for inputs
+
+    fluidRow( # Third row of inputs
+        column(4, # First column (4/12 width)
+               numericInput("instrumentalness", "Instrumentalness (0-1):", value = 0.0, min = 0, max = 1, step = 0.01),
+               numericInput("liveness", "Liveness (0-1):", value = 0.1, min = 0, max = 1, step = 0.01)
+        ),
+        column(4, # Second column (4/12 width)
+               numericInput("valence", "Valence (0-1):", value = 0.5, min = 0, max = 1, step = 0.01),
+               numericInput("time_signature", "Time Signature (1-5):", value = 4, min = 1, max = 5)
+        ),
+        column(4, # Third column (4/12 width)
+               numericInput("key", "Key (0-11):", value = 0, min = 0, max = 11),
+               numericInput("tempo", "Tempo (BPM, 40-220):", value = 120, min = 40, max = 220)
+        )
+    ), # End of third fluidRow for inputs
+
+    ---
+
+    fluidRow( # Row for action buttons
+        column(12, align = "center", # Center the buttons across the full width
+            actionButton("predict", "Predict Popularity", class = "btn-primary"),
+            actionButton("reset", "Reset Inputs", class = "btn-reset"),
+            actionButton("clear", "Clear Results", class = "btn-clear")
+        )
+    ),
+
+    ---
+
+    # --- Output Section (Below Inputs and Buttons) ---
+    h3("Prediction Results"),
+    p("Enter song features above and click 'Predict Popularity'. Your predictions will appear below."),
+    fluidRow(
+        column(12, # Output table takes full width
+               DT::dataTableOutput("results_table"),
+               br(), # Add a line break for spacing
+               actionButton("copy_table", "Copy Table to Clipboard", class = "btn-info")
+        )
+    )
+)
+
+# Server logic (remains the same as before, ensuring button IDs match)
+server <- function(input, output, session) {
+    results_table <- reactiveVal(initial_table)
+
+    # Server-Side File Existence Check (can be removed for production)
+    output$file_exist_status <- renderUI({
+        css_path <- file.path("www", "style.css")
+        js_path <- file.path("www", "script.js")
+
+        css_exists <- file.exists(css_path)
+        js_exists <- file.exists(js_path)
+
+        if (css_exists && js_exists) {
+            HTML(paste0("<p style='color: green;'>&#10004; CSS and JS files found on server (<code>",
+                        css_path, "</code>, <code>", js_path, "</code>)</p>"))
+        } else {
+            HTML(paste0("<p style='color: red;'>&#10008; Missing files on server: ",
+                        ifelse(!css_exists, paste0("<code>", css_path, "</code>"), ""),
+                        ifelse(!js_exists, paste0("<code>", js_path, "</code>"), ""), "</p>"))
+        }
+    })
+
+    # Custom Message Handler for JS Status
+    js_loaded <- reactiveVal(FALSE)
+    observeEvent(input$js_loaded_message, {
+        js_loaded(TRUE)
+        output$js_status <- renderUI({
+            HTML("<p style='color: green;'>&#10004; <code>script.js</code> appears to be loading and executing.</p>")
+        })
+    }, once = TRUE)
+
+    # Output for CSS status
+    output$css_status <- renderUI({
+        if (js_loaded()) {
+            HTML("<p style='color: orange;'>&#9888; CSS file loaded but appearance not confirmed. <br>Check browser dev tools for styles (Elements tab) and console for errors.</p>")
+        } else {
+            HTML("<p style='color: gray;'>&#9679; CSS status pending JS execution.</p>")
+        }
+    })
+
+
+    # Observe event for 'Reset Inputs' button
+    observeEvent(input$reset, {
+        updateNumericInput(session, "daily_rank", value = 1)
+        updateNumericInput(session, "days_out", value = 1)
+        updateNumericInput(session, "market_count", value = 1)
+        updateNumericInput(session, "artist_count", value = 1)
+        updateNumericInput(session, "duration_min", value = 3)
+        updateNumericInput(session, "daily_movement", value = 0)
+        updateNumericInput(session, "weekly_movement", value = 0)
+        updateNumericInput(session, "mode", value = 1)
+        updateNumericInput(session, "is_explicit", value = 0)
+        updateNumericInput(session, "danceability", value = 0.5)
+        updateNumericInput(session, "energy", value = 0.5)
+        updateNumericInput(session, "loudness", value = -10)
+        updateNumericInput(session, "speechiness", value = 0.1)
+        updateNumericInput(session, "acousticness", value = 0.5)
+        updateNumericInput(session, "instrumentalness", value = 0.0)
+        updateNumericInput(session, "liveness", value = 0.1)
+        updateNumericInput(session, "valence", value = 0.5)
+        updateNumericInput(session, "time_signature", value = 4)
+        updateNumericInput(session, "key", value = 0)
+        updateNumericInput(session, "tempo", value = 120)
+    })
+
+    # Observe event for 'Clear Results' button
+    observeEvent(input$clear, {
+        results_table(initial_table)
+    })
+
+    # Observe event for 'Predict Popularity' button
+    observeEvent(input$predict, {
+        new_song_features_df <- data.frame(
+            daily_rank = input$daily_rank,
+            days_out = input$days_out,
+            market_count = input$market_count,
+            artist_count = input$artist_count,
+            duration_min = input$duration_min,
+            daily_movement = input$daily_movement,
+            weekly_movement = input$weekly_movement,
+            mode = input$mode,
+            is_explicit = input$is_explicit,
+            danceability = input$danceability,
+            energy = input$energy,
+            loudness = input$loudness,
+            speechiness = input$speechiness,
+            acousticness = input$acousticness,
+            instrumentalness = input$instrumentalness,
+            liveness = input$liveness,
+            valence = input$valence,
+            time_signature = input$time_signature,
+            key = input$key,
+            tempo = input$tempo
+        )
+
+        prediction_result <- NULL
+        withProgress(message = 'Predicting popularity...', value = 0.5, {
+            prediction_result <- predict_popularity(new_song_features_df)
+        })
+
+        new_song_features_df$Predicted_Popularity <- prediction_result
+
+        current_table <- results_table()
+        updated_table <- rbind(current_table, new_song_features_df)
+        results_table(updated_table)
+
+        session$sendCustomMessage(type = "scroll_to_results", message = list(id = "results_table"))
+    })
+
+    output$results_table <- DT::renderDataTable({
+        results_table()
+    }, options = list(
+        pageLength = 10,
+        scrollX = TRUE,
+        searching = FALSE,
+        info = FALSE
+    ))
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+```         
+```
